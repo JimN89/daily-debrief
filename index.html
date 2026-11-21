@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Daily Debrief v1.1 — 2026-11-21 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -38,6 +39,10 @@ h3{margin:.8em 0 .3em;font-size:.95rem;color:var(--dm);font-weight:600}
 .dc.t b{background:var(--ac);color:#111;display:inline-block;border-radius:50%;min-width:1.6em;text-align:center}
 .ev{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--ac);padding-left:4px;margin-top:2px}
 .dc em{color:var(--dm);font-size:.7rem}
+.dc{cursor:pointer}
+.dc:hover{outline:1px solid var(--ac)}
+#daypop{position:fixed;inset:0;z-index:8;display:grid;place-items:center;background:rgba(0,0,0,.55);padding:16px}
+#daypop .box{max-width:26rem;width:100%;text-align:left;background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:1.2rem}
 .clk{font-size:3.2rem;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .nx{margin-top:auto;border-top:1px solid var(--ln);padding-top:10px;font-size:1.15rem}
 .ag{display:flex;gap:10px;align-items:center;padding:4px 0}
@@ -95,6 +100,8 @@ h3{margin:.8em 0 .3em;font-size:.95rem;color:var(--dm);font-weight:600}
 <div id="alarm" hidden><div class="ab"><h1 id="aT"></h1><p id="aS"></p>
 <button class="big" data-a="stop">Turn off alarm</button><br><button data-a="snooze">Snooze 5 min</button></div></div>
 
+<div id="daypop" hidden><div class="box"><h2 id="dpT"></h2><div id="dpL"></div><br><button class="pri" data-a="closeday">Close</button></div></div>
+
 <script>
 /* ===== SET THESE THREE ===== */
 const CFG={
@@ -132,7 +139,7 @@ cal:{n:'Calendar',r(){
   h+=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<i class="dw">${d}</i>`).join('');
   for(let i=0;i<42;i++){
     const d=new Date(g);d.setDate(g.getDate()+i);const es=onDay(d);
-    h+=`<div class="dc${d.getMonth()!==m?' o':''}${sameDay(d,t)?' t':''}"><b>${d.getDate()}</b>`+
+    h+=`<div class="dc${d.getMonth()!==m?' o':''}${sameDay(d,t)?' t':''}" data-day="${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}"><b>${d.getDate()}</b>`+
       es.slice(0,3).map(e=>`<span class="ev">${e.allDay?'':fmt(e.s)+' '}${esc(e.t)}</span>`).join('')+
       (es.length>3?`<em>+${es.length-3} more</em>`:'')+`</div>`;
   }
@@ -266,10 +273,15 @@ const A={
   show(b){L.off=L.off.filter(k=>k!==b.dataset.k);lay()},
   reset(){L=JSON.parse(JSON.stringify(DEF));lay()},
   test(){arm();ring({id:'test',t:'Test alarm',s:new Date(),allDay:false})},
+  day(b){const[y,mo,da]=b.dataset.day.split('-').map(Number),d=new Date(y,mo-1,da),es=onDay(d);
+    $('#dpT').textContent=d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric'});
+    $('#dpL').innerHTML=es.length?es.map(e=>`<div class="ag"><span class="tm">${e.allDay?'All day':fmt(e.s)}</span><span class="tt">${esc(e.t)}</span></div>`).join(''):'<p class="dim">No events.</p>';
+    $('#daypop').hidden=false},
+  closeday(){$('#daypop').hidden=true},
   stop(){stop(false)},snooze(){stop(true)}
 };
 function lay(){save('dash.layout',L);render()}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])A[b.dataset.a](b)});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b&&A[b.dataset.a])return A[b.dataset.a](b);if(e.target.id==='daypop')return A.closeday();const c=e.target.closest('.dc');if(c)A.day(c)});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='ti')A.add()});
 $('#set').addEventListener('input',e=>{
   const el=e.target,k=el.dataset.s;if(!k)return;
